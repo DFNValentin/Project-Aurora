@@ -4,16 +4,14 @@ from functools import lru_cache
 
 app = Flask(__name__)
 
-# Cache results to avoid repeated searches
 @lru_cache(maxsize=128)
 def search_and_get_audio(query):
     ydl_opts = {
-        'quiet': True,
+        'quiet': False,
         'extract_flat': False,  
-        'format': 'bestaudio/best',
-        'extractaudio': True,
+        'format': 'bestaudio',
         'noplaylist': True,
-        'socket_timeout': 10,  # Add timeout
+        'socket_timeout': 10,
         'extractor_args': {'youtube': {'skip': ['dash', 'hls']}},  
     }
 
@@ -22,16 +20,11 @@ def search_and_get_audio(query):
             result = ydl.extract_info(f"ytsearch1:{query}", download=False)
             if 'entries' in result:
                 video = result['entries'][0]
-                if 'url' in video:
-                    return video['url']
-                
-        if 'entries' in result:
-            video = result['entries'][0]
-            if 'url' in video:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(video['url'], download=False)
-                    return info.get('url')
-                    
+                return {
+                    'title': video.get('title'),
+                    'uploader': video.get('uploader'),
+                    'audio_url': video.get('url')
+                }
     except Exception as e:
         print(f"Error processing {query}: {str(e)}")
         return None
@@ -63,4 +56,4 @@ def search():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, threaded=True)  
+    app.run(debug=True, threaded=True, host='0.0.0.0', port=5000,)  
